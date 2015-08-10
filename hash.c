@@ -5,7 +5,6 @@
 /*
  *  Hash Function
  */
-
 int hash(int n) {
     /* BCC: only accomodates 101 and pos */
     return n % 101;
@@ -15,19 +14,26 @@ int hash(int n) {
  *  Create HashTable of N Entries
  */
 void initialize_ht(size_t n) {
+    struct HashEntry *max, *hep;
+
     allocate_storage_ht(n);
     htabp.size = n;
+
+    hep = htabp.hep;
+    max = hep + n;
+    while (max - hep > 0) {
+        hep->data  = EMPTY;
+        hep->next  = NULL;
+        hep->prior = NULL;
+        ++hep;
+    }
 }
 
 /*
  *  Allocate N entries and Set Value to -1
  */
 void allocate_storage_ht(size_t n) {
-    size_t i;
-
     htabp.hep = malloc(sizeof(struct HashEntry) * n);
-    for (i = 0; i < n; ++i)
-        htabp.hep[i].data = EMPTY;
 }
 
 /*
@@ -41,27 +47,40 @@ void insert(int n) {
     i = hash(n);
     hep = &(htabp.hep[i]);
 
+    /*--------------------
+      Check The List Head
+     --------------------*/
+
+    /* Case 1: Base is Empty */
     if (hep->data == EMPTY) {
         hep->data = n;
         hep->next = NULL;
         hep->prior = NULL;
-        return;                 /* Case 1: Base is Empty */
+        printf("insert %i\n", hep->data);
+        return;
     }
+    /* Case 2: Present at Base */
     else if (hep->data == n)
     {
         printf("error_already_present\n");
-        return;                 /* Case 2: Present at Base */
+        return;
     }
+
+    /*--------------------
+      Check The List Head
+     --------------------*/
 
     while (hep->next != NULL) {
         hep = hep->next;
-        if (hep->data == n) {
+
+        /* Case 3: Present in List */
+         if (hep->data == n) {
             printf("error_already_present\n");
-            return;             /* Case 3: Present in List */
+            return;
         }
     }
 
-    /* next is Null; at the last entry in list; allocate new */
+    /* Case 4: Not found in list; allocate new to end */
     hep->next = malloc(sizeof(struct HashEntry));
     hep->next->prior = hep;
     hep->next->data = n;
@@ -80,24 +99,38 @@ void lookup(int n) {
     i = hash(n);
     hep = &(htabp.hep[i]);
 
+    /*--------------------
+      Check The List Head
+     --------------------*/
+
     if (hep->data == n) {
         printf("find %i\n", n);
-        return;                 /* Case 2: Base Node */
+        return;
     }
 
-    while (hep->next != NULL ) {
+    /*----------------
+      Begin Iterating
+     -----------------*/
+
+    /* Case 1: Stop if in List */
+    while (hep->next != NULL) {
         hep = hep->next;
         if (hep->data == n) {
             printf("find %i\n", n);
-            return;             /* Case 3: Present in List */
+            return;
         }
     }
-    printf("not_find %i\n", n); /* Case 1: Not Present in Base Node */
+
+    /* Case 2: Not Present in List */
+    printf("not_find %i\n", n);
 }
 
 /*
  *  Function 3: Delete_Entry    "Delete"
  *  Hash a Value and Search for it in Table
+ *
+ *    delete helper for mid-list
+ *    delete helper base for list-head
  */
 void delete_helper(struct HashEntry *);
 void delete_helper_base(struct HashEntry *);
@@ -108,45 +141,61 @@ void delete_entry(int n) {
     i = hash(n);
     hep = &(htabp.hep[i]);
 
+    /*--------------------
+      Check The List Head
+     --------------------*/
+
+    /* Case 1: No List */
     if (hep->data == EMPTY) {
         printf("error_not_find %i\n", n);
-        return;                 /* Case 1: No List */
+        return;
     }
     else if (hep->data == n) {
         /* Case 2A: No Linked List; Easy 'removal' */
         if (hep->next == NULL) {
             hep->data = EMPTY;
             printf("delete %i\n", n);
-            return;
         }
         /* Case 2B: Linked List; Shift required */
         else {
             delete_helper_base(hep);
             printf("delete %i\n", n);
         }
+        return;
     }
+
+    /*----------------
+      Begin Iterating
+     -----------------*/
 
     while (hep->next != NULL ) {
         hep = hep->next;
+
         if (hep->data == n) {
-            if(hep->next == NULL) { /* Case 3A: End of List; Easy Removal */
+            /* Case 1A: End of List; Easy Removal */
+            if(hep->next == NULL) {
                 free(hep);
                 printf("delete %i\n", n);
-            } else {
-                delete_helper(hep); /* Case 3B: In list; shift required */
+            }
+            /* Case 1B: In list; shift required */
+            else {
+                delete_helper(hep);
                 printf("delete %i\n", n);
             }
             return;
         }
     }
-    printf("error_not_find %i\n", n); /* Case 4: Not Present in List */
+
+    /* Case 2: Not in List */
+    printf("error_not_find %i\n", n);
     return;
 }
-/* delete the entry after current, shift list over left */
+/* Delete the entry after the current, then shift left */
 void delete_helper(struct HashEntry *hep) {
     hep->prior->next = hep->next;
     free (hep);
 }
+/* Replace value of base entry with next, then shift list left */
 void delete_helper_base(struct HashEntry *hep) {
     struct HashEntry *thep;
 
@@ -158,11 +207,4 @@ void delete_helper_base(struct HashEntry *hep) {
 }
 
 /*void deletemin(int n);*/
-void delete_entry(int n);
-
-/* 
-        case OP_DELETE :
-            printf("DELETE: %i\n", *++args);
-            break;
-*/
 
