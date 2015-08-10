@@ -1,3 +1,4 @@
+/* look more into getline, memset, strtol */
 #include "hash_heap.h"
 
 #define READ "r"
@@ -5,7 +6,9 @@
 #define MAX_LINE_SIZE 256
 
 void parse_input(char *);
-void run_command(int *args);
+void run_command(int *args[]);
+
+void print_ht();
 
 /* globally static, declared in .h, defined here */
 struct HashTable htabp;
@@ -14,11 +17,11 @@ int main(int argc, char *argv[])
 {
     FILE *fp;
     char *line;
-    size_t len = MAX_LINE_SIZE;
+    size_t len;
     ssize_t nread;
 
-    /*int i;*/
-
+    fp = NULL, line = NULL;
+    nread = len = 0;
     if(argc >= 2) {
         if ( (fp = fopen(argv[1], READ)) == NULL) {
             fprintf(stderr, "Failed to open file \n");
@@ -35,21 +38,11 @@ int main(int argc, char *argv[])
     }
 
     while ( (nread = getline(&line, &len, fp)) != EOF ) {
-        /* printf("from while: %s", line);*/
+        /* printf("from while: %s", line <- before parsing);*/
         parse_input(line);
     }
-    /* look more into getline */
-    /*printf("%lu %lu\n", getline(&line, &len, fp), len);
 
-     htabp = allocate_storage_ht(#);*/
-
-
-/*    using this test seems to verfiy the size is correct
-    memset(htabp.hep, 0, (htabp.size+2) * sizeof(struct HashEntry));
-    for(i = 0; i < htabp.size; ++i)
-    {
-        printf("value at %i: %i\n", i, htabp.hep[i].data);
-    }*/
+    print_ht();
 
     free(htabp.hep);
     free(line);
@@ -57,57 +50,79 @@ int main(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-#define OP_LOOKUP 0
-#define OP_INSERT 1
+#define OP_INSERT 0
+#define OP_LOOKUP 1
 #define OP_DELMIN 2
 #define OP_DELETE 3
 
 #define DECIMAL 10
 #define MAX_NUM_OF_ARGS 2
+#define NIL (-1)
 void parse_input(char *s)
 {
-    int *args;
-    size_t i;
-    size_t argc;
+    int *args[MAX_NUM_OF_ARGS];
+    size_t i, argc;
 
     long arg;          /* arg from string */
     char *arg_end;
 
-    args = malloc(sizeof(int) * MAX_NUM_OF_ARGS);
     for (arg = strtol(s, &arg_end, DECIMAL), i = 0; s != arg_end;
                 arg = strtol(s, &arg_end, DECIMAL), ++i) {
-        s = arg_end;    /* if the pointer to char * is same as arg_end, reached end */
-        args[i] = (int)arg;
-        /* printf("from args: %i\n", args[i]);*/
+        s = arg_end;
+        args[i] = malloc(sizeof(int));
+        *(args[i]) = (int)arg;
     }
 
     argc = i;
 
-    if (argc == 1)
-    {   /* initialize */
-        initialize_ht(*args);
+    if (argc == 1) {
+        initialize_ht(**args);
+        free(*args);
         return;
     }
     run_command(args);
+
+    while (i > 0)
+        free(args[--i]);
 }
 
-void run_command(int *args) {
-    switch (*args) {
-        case OP_LOOKUP :
-            printf("LOOKUP: %i\n", *++args);
-            break;
+void run_command(int *args[]) {
+    switch (**args) {
         case OP_INSERT :
-            printf("INSERT: %i\n", *++args);
+            insert(**++args);
+            break;
+        case OP_LOOKUP :
+            lookup(**++args);
             break;
         case OP_DELMIN :
-            printf("DELMIN: %i\n", *++args);
             break;
         case OP_DELETE :
-            printf("DELETE: %i\n", *++args);
+            delete_entry(**++args);
             break;
         default :
-            fprintf(stderr, "WARNING: can't parse input: Operation %i not found \
-                                \n EXITING IMMEDIATELY \n", *args);
+            fprintf(stderr, "WARNING: can't parse input: Operation %i not \
+                                found \n EXITING IMMEDIATELY \n", **args);
             exit(EXIT_FAILURE);
     }
 }
+
+void print_ht() {
+    int i;
+    struct HashEntry *hep;
+
+    for(i = 0; i < htabp.size; ++i)
+    {
+        hep = &(htabp.hep[i]);
+        if ( hep->data >= 0) {
+            printf(" [%3i] %9i", i, hep->data );
+            while(hep->next != NULL) {
+                hep = hep->next;
+                printf(" |-> %9i", hep->data);
+            }
+            printf("\n");
+        }
+/*        else
+            printf(" [%3i] %9s |\n", i, "Empty");
+*/  }
+}
+
