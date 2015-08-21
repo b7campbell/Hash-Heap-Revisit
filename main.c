@@ -1,67 +1,64 @@
 /* look more into getline, memset, strtol */
 #include "hash_heap.h"
+#include "cli.h"
 
-#define READ "r"
-#define STDIN 0
 #define MAX_LINE_SIZE 256
+
+#define MAX_MEM 10000
 
 void parse_input(char *);
 void run_command(int *args[]);
-
-void print_ht();
+void cleanup(void);
 
 /* globally static, declared in .h, defined here */
 struct HashTable htabp;
+struct Heap heapp;
+
+FILE *infp, *outfp;
+char *line;
 
 int main(int argc, char *argv[])
 {
-    FILE *fp;
-    char *line;
+    extern FILE *infp, *outfp;
+    extern char *line;
     size_t len;
     ssize_t nread;
 
-    fp = NULL, line = NULL;
+    infp = outfp = NULL, line = NULL;
     nread = len = 0;
-    if(argc >= 2) {
-        if ( (fp = fopen(argv[1], READ)) == NULL) {
-            fprintf(stderr, "Failed to open file \n");
-            exit(1);
-        }
-    }
-    else {
-        /* BCC: more later */
-        printf("Did not enter a filename. Enterting Interactive Mode...\n");
-        if ( (fp = fdopen(STDIN, READ)) == NULL) {
-            fprintf(stderr, "Cannot read from stdin\n");
-            exit(1);
-        }
-    }
 
-    while ( (nread = getline(&line, &len, fp)) != EOF ) {
-        /* printf("from while: %s", line <- before parsing);*/
+    /* Open Input and Output Files */
+    file_setup(argc, argv);
+
+    /* Parse Commands from Input File or STDIN */
+    while ( (nread = getline(&line, &len, infp)) != EOF ) {
         parse_input(line);
     }
 
-    print_ht();
-
-    free(htabp.hep);
-    free(line);
-    fclose(fp);
+    /* Cleanup */
+    cleanup();
     return EXIT_SUCCESS;
 }
+
 
 #define OP_INSERT 0
 #define OP_LOOKUP 1
 #define OP_DELMIN 2
 #define OP_DELETE 3
+#define OP_PRINT  4
 
 #define DECIMAL 10
 #define MAX_NUM_OF_ARGS 2
-#define NIL (-1)
+
+#define FALS 0
+#define TRU 1
+
 void parse_input(char *s)
 {
     int *args[MAX_NUM_OF_ARGS];
-    size_t i, argc;
+    size_t i;
+
+    static int init = FALS;
 
     long arg;          /* arg from string */
     char *arg_end;
@@ -73,13 +70,13 @@ void parse_input(char *s)
         *(args[i]) = (int)arg;
     }
 
-    argc = i;
-
-    if (argc == 1) {
+    if (init == FALS) {
         initialize_ht(**args);
         free(*args);
+        init = TRU;
         return;
     }
+
     run_command(args);
 
     while (i > 0)
@@ -95,34 +92,42 @@ void run_command(int *args[]) {
             lookup(**++args);
             break;
         case OP_DELMIN :
+            deletemin();
             break;
         case OP_DELETE :
             delete_entry(**++args);
             break;
+        case OP_PRINT :
+            print_heap();
+            print_ht();
         default :
             fprintf(stderr, "WARNING: can't parse input: Operation %i not \
                                 found \n EXITING IMMEDIATELY \n", **args);
             exit(EXIT_FAILURE);
+            break;
     }
 }
 
-void print_ht() {
+void cleanup() {
     int i;
-    struct HashEntry *hep;
+    struct HashEntry *h;
+    extern FILE *infp, *outfp;
+    extern char *line;
 
-    for(i = 0; i < htabp.size; ++i)
-    {
-        hep = &(htabp.hep[i]);
-        if ( hep->data >= 0) {
-            printf(" [%3i] %9i", i, hep->data );
-            while(hep->next != NULL) {
-                hep = hep->next;
-                printf(" |-> %9i", hep->data);
-            }
-            printf("\n");
+    for (i = 0; i < htabp.size; ++i) {
+        h = htabp.hep + i;
+        if ( (h = h->next) == NULL)
+            continue;
+        while (h->next != NULL) {
+            h = h->next;
+            free(h->prior);
         }
-/*        else
-            printf(" [%3i] %9s |\n", i, "Empty");
-*/  }
-}
+        free(h);
+    }
+    free(htabp.hep);
+    /* free(heapp.hep);*/
+    free(line);
+    fclose(infp);
+    fclose(outfp);
 
+}

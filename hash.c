@@ -208,3 +208,24 @@ void delete_helper_base(struct HashEntry *hep) {
 
 /*void deletemin(int n);*/
 
+/* Print HT */
+void print_ht() {
+    int i;
+    struct HashEntry *hep;
+
+    for(i = 0; i < htabp.size; ++i)
+    {
+        hep = &(htabp.hep[i]);
+        if ( hep->data >= 0) {
+            printf(" [%3i] %9i", i, hep->data );
+            while(hep->next != NULL) {
+                hep = hep->next;
+                printf(" |-> %9i", hep->data);
+            }
+            printf("\n");
+        }
+/*        else
+            printf(" [%3i] %9s |\n", i, "Empty");
+*/  }
+}
+
