@@ -20,7 +20,7 @@ struct HashTable {
     struct HashEntry *hep;
 };
 
-extern struct HashTable htabp;
+extern struct HashTable htab;
 
 void allocate_storage_ht(size_t);
 void initialize_ht(size_t);

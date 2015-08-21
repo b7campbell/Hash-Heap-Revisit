@@ -17,9 +17,9 @@ void initialize_ht(size_t n) {
     struct HashEntry *max, *hep;
 
     allocate_storage_ht(n);
-    htabp.size = n;
+    htab.size = n;
 
-    hep = htabp.hep;
+    hep = htab.hep;
     max = hep + n;
     while (max - hep > 0) {
         hep->data  = EMPTY;
@@ -33,7 +33,7 @@ void initialize_ht(size_t n) {
  *  Allocate N entries and Set Value to -1
  */
 void allocate_storage_ht(size_t n) {
-    htabp.hep = malloc(sizeof(struct HashEntry) * n);
+    htab.hep = malloc(sizeof(struct HashEntry) * n);
 }
 
 /*
@@ -45,7 +45,7 @@ void insert(int n) {
     struct HashEntry *hep;
 
     i = hash(n);
-    hep = &(htabp.hep[i]);
+    hep = &(htab.hep[i]);
 
     /*--------------------
       Check The List Head
@@ -97,7 +97,7 @@ void lookup(int n) {
     struct HashEntry *hep;
 
     i = hash(n);
-    hep = &(htabp.hep[i]);
+    hep = &(htab.hep[i]);
 
     /*--------------------
       Check The List Head
@@ -139,7 +139,7 @@ void delete_entry(int n) {
     struct HashEntry *hep;
 
     i = hash(n);
-    hep = &(htabp.hep[i]);
+    hep = &(htab.hep[i]);
 
     /*--------------------
       Check The List Head
@@ -213,9 +213,9 @@ void print_ht() {
     int i;
     struct HashEntry *hep;
 
-    for(i = 0; i < htabp.size; ++i)
+    for(i = 0; i < htab.size; ++i)
     {
-        hep = &(htabp.hep[i]);
+        hep = &(htab.hep[i]);
         if ( hep->data >= 0) {
             printf(" [%3i] %9i", i, hep->data );
             while(hep->next != NULL) {

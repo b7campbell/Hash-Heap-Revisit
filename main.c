@@ -1,4 +1,3 @@
-/* look more into getline, memset, strtol */
 #include "hash_heap.h"
 #include "cli.h"
 
@@ -6,40 +5,44 @@
 
 #define MAX_MEM 10000
 
+void get_input(void);
 void parse_input(char *);
 void run_command(int *args[]);
 void cleanup(void);
 
 /* globally static, declared in .h, defined here */
-struct HashTable htabp;
-struct Heap heapp;
+struct HashTable htab;
 
 FILE *infp, *outfp;
-char *line;
 
 int main(int argc, char *argv[])
 {
     extern FILE *infp, *outfp;
-    extern char *line;
-    size_t len;
-    ssize_t nread;
 
-    infp = outfp = NULL, line = NULL;
-    nread = len = 0;
+    infp = outfp = NULL;
 
     /* Open Input and Output Files */
     file_setup(argc, argv);
-
     /* Parse Commands from Input File or STDIN */
-    while ( (nread = getline(&line, &len, infp)) != EOF ) {
-        parse_input(line);
-    }
-
+    get_input();
     /* Cleanup */
     cleanup();
     return EXIT_SUCCESS;
 }
 
+void get_input() {
+    ssize_t nread;
+    size_t  len;
+    char    *line;
+
+    nread = len = 0;
+    line = NULL;
+
+    while ( (nread = getline(&line, &len, infp)) != EOF ) {
+        parse_input(line);
+    }
+    free(line);
+}
 
 #define OP_INSERT 0
 #define OP_LOOKUP 1
@@ -112,10 +115,9 @@ void cleanup() {
     int i;
     struct HashEntry *h;
     extern FILE *infp, *outfp;
-    extern char *line;
 
-    for (i = 0; i < htabp.size; ++i) {
-        h = htabp.hep + i;
+    for (i = 0; i < htab.size; ++i) {
+        h = htab.hep + i;
         if ( (h = h->next) == NULL)
             continue;
         while (h->next != NULL) {
@@ -124,9 +126,8 @@ void cleanup() {
         }
         free(h);
     }
-    free(htabp.hep);
+    free(htab.hep);
     /* free(heapp.hep);*/
-    free(line);
     fclose(infp);
     fclose(outfp);
 

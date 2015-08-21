@@ -9,6 +9,8 @@
       memcpy(&x, swap_temp, sizeof(x)); \
     } while(0)
 
+struct Heap heapp;
+
 /*
  *  Setup Functions: Initialize and Clear
  *
